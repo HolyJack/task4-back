@@ -6,14 +6,16 @@ import { User } from "@prisma/client";
 import cors from "cors";
 import prisma from "./utils/db";
 import router from "./routes";
+import { config } from "dotenv";
 
 const app: Express = express();
 const port = 3000;
+const env = config();
 
 app.use(passport.initialize());
 app.use(
   session({
-    secret: "123123",
+    secret: env.parsed?.SECRET || "dev",
     resave: false,
     saveUninitialized: false,
     cookie: {

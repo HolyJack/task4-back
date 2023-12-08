@@ -16,60 +16,62 @@ const express_1 = __importDefault(require("express"));
 const express_session_1 = __importDefault(require("express-session"));
 const passport_1 = __importDefault(require("passport"));
 const passport_local_1 = require("passport-local");
-const client_1 = require("@prisma/client");
+const cors_1 = __importDefault(require("cors"));
+const db_1 = __importDefault(require("./utils/db"));
+const routes_1 = __importDefault(require("./routes"));
 const app = (0, express_1.default)();
 const port = 3000;
-const prisma = new client_1.PrismaClient();
+app.use(passport_1.default.initialize());
+app.use((0, express_session_1.default)({
+    secret: "123123",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: false,
+    },
+}));
+app.use((0, cors_1.default)({
+    origin: "http://localhost:5173",
+    credentials: true,
+}));
+app.use(express_1.default.json());
+app.use(passport_1.default.session());
 passport_1.default.use(new passport_local_1.Strategy((username, password, done) => __awaiter(void 0, void 0, void 0, function* () {
-    const user = prisma.user.findFirst({ where: { username, password } });
-    if (!user) {
-        return done(null, false, { message: "Incorrect username" });
+    try {
+        const user = yield db_1.default.user.findFirst({
+            where: { username, password },
+        });
+        if (!user) {
+            return done(null, false, { message: "Incorrect username or password" });
+        }
+        if (!user.active) {
+            return done(null, false, {
+                message: "Your account is inactive. Contact support.",
+            });
+        }
+        return done(null, user);
     }
-    return done(null, user);
+    catch (err) {
+        return done(err);
+    }
 })));
+// @ts-ignore
+// no overload mathes this call
 passport_1.default.serializeUser((user, done) => {
     done(null, user.id);
 });
 passport_1.default.deserializeUser((id, done) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const user = prisma.user.findFirst({ where: { id: id } });
-        done(null, user);
+        const user = yield db_1.default.user.findFirst({
+            where: { id: id },
+        });
+        if (user)
+            return done(null, user);
+        return done(null, false);
     }
-    catch (error) {
-        done(error);
+    catch (err) {
+        return done(err);
     }
 }));
-app.use((0, express_session_1.default)({
-    secret: "keyboard cat",
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: true },
-}));
-app.post("/signup", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const username = req.body.username;
-    const email = req.body.email;
-    const password = req.body.password;
-    const status = yield prisma.user.create({
-        data: {
-            username,
-            email,
-            password,
-        },
-    });
-}));
-app.post("/signin", passport_1.default.authenticate("local", {
-    successMessage: "Success",
-    failureMessage: "Error",
-}));
-app.get("/users", passport_1.default.authenticate("session"), (_, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const users = yield prisma.user.findMany({
-        select: {
-            username: true,
-            createdAt: true,
-            updatedAt: true,
-            active: true,
-        },
-    });
-    res.send(users);
-}));
+app.use(routes_1.default);
 app.listen(port, () => console.log(`This app is listening on port ${port}`));
