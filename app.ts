@@ -57,7 +57,8 @@ passport.use(
 // @ts-ignore
 // no overload mathes this call
 passport.serializeUser((user: User, done) => {
-  done(null, user.id);
+  if (user.id) return done(null, user.id);
+  return done(null, false);
 });
 
 passport.deserializeUser(async (id, done) => {
