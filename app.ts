@@ -26,7 +26,7 @@ app.use(
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "task4-front-snowy.vercel.app",
     credentials: true,
   }),
 );
