@@ -4,7 +4,8 @@
   "description": "Task4 server",
   "main": "app.ts",
   "scripts": {
-    "build": "npx tsc",
+
+    "build": "prisma generate && npx tsc",
     "start": "node app.js",
     "dev": "ts-node-dev app.ts"
   },
